@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G1 每日作业看板 - 单条点读与音色随选版</title>
+  <style>
+    :root {
+      --bg: #f3f6fa;
+      --card-bg: #ffffff;
+      --blue-main: #1d4ed8;
+      --blue-sub: #3b82f6;
+      --orange-main: #d97706;
+      --orange-sub: #f59e0b;
+      --slate-main: #334155;
+      --slate-sub: #64748b;
+      --reading-highlight: #fef08a;
+      --reading-border: #eab308;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: #0f172a;
+      padding: 16px 16px 80px;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .date-badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #475569;
+      background: #e2e8f0;
+      padding: 6px 20px;
+      border-radius: 9999px;
+    }
+
+    /* 顶部控制栏：音色选择、全局停止、添加新作业 */
+    .controls-panel {
+      background: #ffffff;
+      padding: 14px 20px;
+      border-radius: 16px;
+      margin: 18px auto 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .voice-selector-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    select#voiceSelect {
+      padding: 8px 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border-radius: 10px;
+      border: 2px solid #cbd5e1;
+      background: #f8fafc;
+      color: #0f172a;
+      outline: none;
+      cursor: pointer;
+      max-width: 280px;
+    }
+
+    select#voiceSelect:focus {
+      border-color: #3b82f6;
+    }
+
+    .btn-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      padding: 9px 20px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-stop {
+      background: #ef4444;
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(239, 68, 68, 0.25);
+    }
+    .btn-stop:hover {
+      background: #dc2626;
+      transform: scale(1.02);
+    }
+
+    .btn-add {
+      background: #10b981;
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+    }
+    .btn-add:hover {
+      background: #059669;
+      transform: scale(1.02);
+    }
+
+    /* 3 班级栅格布局 */
+    .classes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 22px;
+      align-items: start;
+    }
+
+    .class-column {
+      background: var(--card-bg);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+      border: 3px solid transparent;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .col-1a { border-color: var(--blue-sub); }
+    .col-1a .col-header { background: linear-gradient(135deg, var(--blue-main), var(--blue-sub)); }
+
+    .col-1b { border-color: var(--orange-sub); }
+    .col-1b .col-header { background: linear-gradient(135deg, var(--orange-main), var(--orange-sub)); }
+
+    .col-1c { border-color: var(--slate-sub); }
+    .col-1c .col-header { background: linear-gradient(135deg, var(--slate-main), var(--slate-sub)); }
+
+    .col-header {
+      padding: 16px 22px;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .col-title {
+      font-size: 1.65rem;
+      font-weight: 900;
+    }
+
+    .col-sub {
+      font-size: 1.05rem;
+      font-weight: 600;
+      opacity: 0.95;
+    }
+
+    .subjects-container {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 科目外框 */
+    .subject-block {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .subject-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .subject-label {
+      font-size: 1.4rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subject-label .en {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .btn-read-all {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #1e40af;
+      background: #dbeafe;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-read-all:hover {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    /* 作业条目容器 */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* 单条作业行：可独立点击只读该条 */
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 2px solid #f1f5f9;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .task-item:hover {
+      border-color: #93c5fd;
+      background: #f8fafc;
+      transform: translateX(4px);
+    }
+
+    .task-item-text {
+      font-size: 1.35rem; /* 大字排版 */
+      line-height: 1.7;
+      font-weight: 600;
+      color: #1e293b;
+      flex: 1;
+    }
+
+    .single-audio-icon {
+      flex-shrink: 0;
+      margin-top: 4px;
+      font-size: 1.1rem;
+      opacity: 0.5;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .task-item:hover .single-audio-icon {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+
+    /* 独立指读高亮态 */
+    .task-item.is-reading {
+      background: var(--reading-highlight) !important;
+      border-color: var(--reading-border) !important;
+      box-shadow: 0 4px 12px rgba(234, 179, 8, 0.25);
+    }
+    .task-item.is-reading .task-item-text {
+      color: #854d0e !important;
+      font-weight: 800;
+    }
+    .task-item.is-reading .single-audio-icon {
+      opacity: 1;
+      animation: pulse-icon 1s infinite alternate;
+    }
+
+    @keyframes pulse-icon {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.3); }
+    }
+
+    .empty-state {
+      font-size: 1.25rem;
+      color: #94a3b8;
+      font-style: italic;
+      font-weight: 500;
+      padding: 8px 10px;
+    }
+
+    /* 快捷添加弹窗/折叠抽屉 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: 20px;
+      max-width: 520px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-card h3 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      color: #0f172a;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .form-group select, .form-group textarea {
+      padding: 10px 12px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      border: 2px solid #cbd5e1;
+      font-family: inherit;
+      outline: none;
+    }
+    .form-group select:focus, .form-group textarea:focus {
+      border-color: #3b82f6;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 900px) {
+      .classes-grid {
+        grid-template-columns: 1fr;
+      }
+      h1 { font-size: 2rem; }
+      .task-item-text { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>🎒 G1 每日作业互动看板</h1>
+      <div class="date-badge">📅 10月21日 星期三 Wednesday</div>
+    </header>
+
+    <!-- 顶部多维控制台 -->
+    <div class="controls-panel">
+      <div class="voice-selector-box">
+        <span>🎙️ 朗读声音：</span>
+        <select id="voiceSelect" onchange="changeVoice()">
+          <option value="">正在检测系统可用音色...</option>
+        </select>
+      </div>
+
+      <div class="btn-actions">
+        <button class="btn btn-add" onclick="openAddModal()">
+          <span>➕ 补入新作业</span>
+        </button>
+        <button class="btn btn-stop" onclick="stopSpeech()">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+          <span>停止播报</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 班级大字看板 -->
+    <div class="classes-grid">
+
+      <!-- 1A 班 -->
+      <div class="class-column col-1a" id="col-1A">
+        <div class="col-header">
+          <div class="col-title">🔷 1A 班</div>
+          <div class="col-sub">homework 每日作业</div>
+        </div>
+        <div class="subjects-container">
+          
+          <!-- 数学 -->
+          <div class="subject-block" data-subject="数学">
+            <div class="subject-header">
+              <span class="subject-label">📐 数学 <span class="en">Maths</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1A班 数学')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="empty-state">（暂无书面作业）</div>
+            </div>
+          </div>
+
+          <!-- 语文 -->
+          <div class="subject-block" data-subject="语文">
+            <div class="subject-header">
+              <span class="subject-label">📖 语文 <span class="en">Chinese</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1A班 语文')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1A班语文：完成写字本A第22至25页，规范书写。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 完成写字本A第 22–25 页，规范书写</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1A班语文：熟读语文书第51至52页。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 熟读语文书第 51–52 页</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 英语 -->
+          <div class="subject-block" data-subject="英语">
+            <div class="subject-header">
+              <span class="subject-label">🔤 英语 <span class="en">English</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1A班 英语')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1A班英语第一条：看3个短动画，挑1个，练配音5遍以上。听看、跟读，看字幕暂停练习，注意语气语调的模仿。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 看 3 个短动画，挑 1 个，练配音 5 遍+（听看，跟读，看字幕暂停练习，注意语气语调的模仿）</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1A班英语第二条：复习数字1到10，打招呼 What is your name? Hello, I am... 问年龄 How old are you? I am ... years old。冒险岛已经更新KB1乐园关卡，不超过10分钟使用时间。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 复习数字 1–10，打招呼 What's your name? Hello, I'm... 问年龄 How old are you? I'm ... years old.（冒险岛已经更新 KB1 乐园关卡，不超过 10 分钟使用时间）</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他 -->
+          <div class="subject-block" data-subject="其他">
+            <div class="subject-header">
+              <span class="subject-label">🌟 其他 <span class="en">Others</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1A班 其他')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1A班其他事项第一条：每天跳绳3到5组，每组1分钟，记录在 planner 月计划格子里。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 每天跳绳 3~5 组，每组 1 分钟，记录在 planner 月计划格子里</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1A班其他事项第二条：自己整理书包，书面作业放作业袋，学科课本分类放。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 自己整理书包（书面作业放作业袋，学科课本分类放）</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 1B 班 -->
+      <div class="class-column col-1b" id="col-1B">
+        <div class="col-header">
+          <div class="col-title">🔶 1B 班</div>
+          <div class="col-sub">homework 每日作业</div>
+        </div>
+        <div class="subjects-container">
+          
+          <!-- 数学 -->
+          <div class="subject-block" data-subject="数学">
+            <div class="subject-header">
+              <span class="subject-label">📐 数学 <span class="en">Maths</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1B班 数学')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1B班数学：计算能手第42至43页。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">计算能手 P42–43</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 语文 -->
+          <div class="subject-block" data-subject="语文">
+            <div class="subject-header">
+              <span class="subject-label">📖 语文 <span class="en">Chinese</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1B班 语文')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1B班语文第一条：完成写字本A第22至25页，规范书写。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 完成写字本A第 22–25 页，规范书写</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1B班语文第二条：熟读语文书第51至52页正文。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 熟读语文书第 51–52 页正文</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 英语 -->
+          <div class="subject-block" data-subject="英语">
+            <div class="subject-header">
+              <span class="subject-label">🔤 英语 <span class="en">English</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1B班 英语')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1B班英语第一条：看3个英文小视频，自选1个练习配音。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 看 3 个英文小视频，自选 1 个练习配音</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1B班英语第二条：跟视频复习本单元已学内容，包括打招呼、问名字、问年龄。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 跟视频复习本单元已学内容（打招呼，问名字，问年龄）</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他 -->
+          <div class="subject-block" data-subject="其他">
+            <div class="subject-header">
+              <span class="subject-label">🌟 其他 <span class="en">Others</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1B班 其他')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="empty-state">（暂无特殊安排）</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 1C 班 -->
+      <div class="class-column col-1c" id="col-1C">
+        <div class="col-header">
+          <div class="col-title">🔘 1C 班</div>
+          <div class="col-sub">homework 每日作业</div>
+        </div>
+        <div class="subjects-container">
+          
+          <!-- 数学 -->
+          <div class="subject-block" data-subject="数学">
+            <div class="subject-header">
+              <span class="subject-label">📐 数学 <span class="en">Maths</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1C班 数学')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1C班数学第一条：计算能手第40、41页。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 《计算能手》40、41 页</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1C班数学第二条：校本第29页。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 《校本》29 页</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 语文 -->
+          <div class="subject-block" data-subject="语文">
+            <div class="subject-header">
+              <span class="subject-label">📖 语文 <span class="en">Chinese</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1C班 语文')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1C班语文第一条：完成写字本A第22至25页，规范书写。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 完成写字本A第 22–25 页，规范书写</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1C班语文第二条：熟读语文书第51至52页。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 熟读语文书第 51–52 页</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 英语 -->
+          <div class="subject-block" data-subject="英语">
+            <div class="subject-header">
+              <span class="subject-label">🔤 英语 <span class="en">English</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1C班 英语')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="task-item" onclick="readSingleTask(this, '1C班英语第一条：看3个英文小视频，自选1个练习配音。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">1. 看 3 个英文小视频，自选 1 个练习配音</span>
+              </div>
+              <div class="task-item" onclick="readSingleTask(this, '1C班英语第二条：跟视频复习本单元已学内容，包括打招呼、问名字、问年龄。')">
+                <span class="single-audio-icon">🔊</span>
+                <span class="task-item-text">2. 跟视频复习本单元已学内容（打招呼，问名字，问年龄）</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他 -->
+          <div class="subject-block" data-subject="其他">
+            <div class="subject-header">
+              <span class="subject-label">🌟 其他 <span class="en">Others</span></span>
+              <button class="btn-read-all" onclick="readAllInSubject(this, '1C班 其他')">全读 🔊</button>
+            </div>
+            <div class="task-list">
+              <div class="empty-state">（暂无特殊安排）</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 补录新作业简易弹窗 -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal-card">
+      <h3>➕ 补入新作业条目</h3>
+      <div class="form-group">
+        <label>选择班级：</label>
+        <select id="modalClass">
+          <option value="1A">1A 班</option>
+          <option value="1B">1B 班</option>
+          <option value="1C">1C 班</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>选择学科：</label>
+        <select id="modalSubject">
+          <option value="数学">📐 数学</option>
+          <option value="语文">📖 语文</option>
+          <option value="英语">🔤 英语</option>
+          <option value="其他">🌟 其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>作业内容文字：</label>
+        <textarea id="modalText" rows="3" placeholder="例如：预习课文第28页生字"></textarea>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn" style="background:#e2e8f0; color:#334155;" onclick="closeAddModal()">取消</button>
+        <button class="btn btn-add" onclick="submitNewTask()">确认补入</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const synth = window.speechSynthesis;
+    let selectedVoice = null;
+    let currentSpeakingItem = null;
+    let batchQueue = [];
+    let isBatchRunning = false;
+
+    // 1. 初始化并枚举系统可用的中文及全语种声音
+    function populateVoiceList() {
+      if (!synth) return;
+      const voices = synth.getVoices();
+      const select = document.getElementById('voiceSelect');
+      select.innerHTML = '';
+
+      if (voices.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = '默认系统发音人';
+        opt.value = '';
+        select.appendChild(opt);
+        return;
+      }
+
+      // 优先选出中文音色，其余音色放在后备
+      const zhVoices = voices.filter(v => v.lang.includes('zh') || v.lang.includes('cmn'));
+      const otherVoices = voices.filter(v => !v.lang.includes('zh') && !v.lang.includes('cmn'));
+
+      const groups = [
+        { label: '🌟 中文发音人推荐', list: zhVoices },
+        { label: '🌐 其他系统音色', list: otherVoices.slice(0, 10) }
+      ];
+
+      groups.forEach(group => {
+        if (group.list.length > 0) {
+          const optGroup = document.createElement('optgroup');
+          optGroup.label = group.label;
+          group.list.forEach((voice, index) => {
+            const opt = document.createElement('option');
+            // 清理冗余显示，友好标注
+            let displayName = voice.name
+              .replace('Microsoft ', '微软-')
+              .replace('Apple ', '苹果-')
+              .replace('Google ', '谷歌-');
+            opt.textContent = `${displayName} (${voice.lang})`;
+            opt.value = voice.name;
+            optGroup.appendChild(opt);
+          });
+          select.appendChild(optGroup);
+        }
+      });
+
+      // 默认选择最清晰自然的一款中文声音（如 Xiaoxiao, Tingting, Yunxi 等）
+      const preferred = zhVoices.find(v => 
+        v.name.includes('Xiaoxiao') || v.name.includes('Tingting') || v.name.includes('Yunxi') || v.name.includes('Natural')
+      ) || zhVoices[0];
+
+      if (preferred) {
+        select.value = preferred.name;
+        selectedVoice = preferred;
+      } else if (voices.length > 0) {
+        selectedVoice = voices[0];
+      }
+    }
+
+    function changeVoice() {
+      const select = document.getElementById('voiceSelect');
+      const voices = synth.getVoices();
+      selectedVoice = voices.find(v => v.name === select.value) || null;
+      stopSpeech();
+    }
+
+    // 2. 核心播放与停止逻辑
+    function stopSpeech() {
+      if (synth) {
+        synth.cancel();
+      }
+      isBatchRunning = false;
+      batchQueue = [];
+      clearAllHighlights();
+    }
+
+    function clearAllHighlights() {
+      document.querySelectorAll('.task-item').forEach(el => el.classList.remove('is-reading'));
+      currentSpeakingItem = null;
+    }
+
+    // 单条独立点读（严格 1.0 语速，自然发音）
+    function readSingleTask(elem, text) {
+      if (!('speechSynthesis' in window)) {
+        alert('浏览器不支持语音播放');
+        return;
+      }
+
+      // 如果重复点正在朗读的这条，则暂停/停止
+      if (currentSpeakingItem === elem && synth.speaking) {
+        stopSpeech();
+        return;
+      }
+
+      stopSpeech();
+      currentSpeakingItem = elem;
+      elem.classList.add('is-reading');
+
+      const utter = new SpeechSynthesisUtterance(text);
+      if (selectedVoice) utter.voice = selectedVoice;
+      utter.lang = 'zh-CN';
+      utter.rate = 1.0; // 优化 1：严格保持 1.0 倍速自然语速
+      utter.pitch = 1.0;
+
+      utter.onend = () => {
+        elem.classList.remove('is-reading');
+        currentSpeakingItem = null;
+      };
+
+      utter.onerror = () => {
+        elem.classList.remove('is-reading');
+        currentSpeakingItem = null;
+      };
+
+      synth.speak(utter);
+    }
+
+    // 学科整组连续朗读（逐条连播并跟光指读）
+    function readAllInSubject(btnElem, titlePrefix) {
+      event.stopPropagation();
+      const subjectBlock = btnElem.closest('.subject-block');
+      const items = subjectBlock.querySelectorAll('.task-item');
+
+      if (items.length === 0) {
+        stopSpeech();
+        const utter = new SpeechSynthesisUtterance(`${titlePrefix}：今日暂无书面作业。`);
+        if (selectedVoice) utter.voice = selectedVoice;
+        utter.rate = 1.0;
+        synth.speak(utter);
+        return;
+      }
+
+      stopSpeech();
+      isBatchRunning = true;
+      batchQueue = [];
+
+      items.forEach((item, index) => {
+        const text = item.querySelector('.task-item-text').innerText;
+        batchQueue.push({
+          elem: item,
+          text: `${titlePrefix} 第${index + 1}条：${text}`
+        });
+      });
+
+      let step = 0;
+      function playStep() {
+        if (!isBatchRunning || step >= batchQueue.length) {
+          clearAllHighlights();
+          return;
+        }
+
+        const curr = batchQueue[step];
+        clearAllHighlights();
+        curr.elem.classList.add('is-reading');
+        currentSpeakingItem = curr.elem;
+
+        const utter = new SpeechSynthesisUtterance(curr.text);
+        if (selectedVoice) utter.voice = selectedVoice;
+        utter.rate = 1.0;
+        utter.pitch = 1.0;
+
+        utter.onend = () => {
+          step++;
+          setTimeout(playStep, 260);
+        };
+        utter.onerror = () => {
+          step++;
+          playStep();
+        };
+
+        synth.speak(utter);
+      }
+
+      playStep();
+    }
+
+    // 3. 动态补入作业条目逻辑
+    function openAddModal() {
+      document.getElementById('addModal').style.display = 'flex';
+      document.getElementById('modalText').focus();
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').style.display = 'none';
+      document.getElementById('modalText').value = '';
+    }
+
+    function submitNewTask() {
+      const cls = document.getElementById('modalClass').value;
+      const subj = document.getElementById('modalSubject').value;
+      const text = document.getElementById('modalText').value.trim();
+
+      if (!text) {
+        alert('请输入作业文字内容');
+        return;
+      }
+
+      // 寻找到目标容器
+      const col = document.getElementById(`col-${cls}`);
+      if (!col) return;
+
+      const subjectBlocks = col.querySelectorAll('.subject-block');
+      let targetBlock = null;
+      subjectBlocks.forEach(b => {
+        if (b.getAttribute('data-subject') === subj) {
+          targetBlock = b;
+        }
+      });
+
+      if (targetBlock) {
+        const taskList = targetBlock.querySelector('.task-list');
+        // 移除暂无作业状态
+        const empty = taskList.querySelector('.empty-state');
+        if (empty) empty.remove();
+
+        const count = taskList.querySelectorAll('.task-item').length + 1;
+        const newItem = document.createElement('div');
+        newItem.className = 'task-item';
+        const readText = `${cls}班${subj}：${text}`;
+        newItem.setAttribute('onclick', `readSingleTask(this, '${readText}')`);
+        newItem.innerHTML = `
+          <span class="single-audio-icon">🔊</span>
+          <span class="task-item-text">${count}. ${text}</span>
+        `;
+        taskList.appendChild(newItem);
+      }
+
+      closeAddModal();
+    }
+
+    // 监听语音列表加载
+    if (synth.onvoiceschanged !== undefined) {
+      synth.onvoiceschanged = populateVoiceList;
+    }
+    window.addEventListener('DOMContentLoaded', populateVoiceList);
+  </script>
+</body>
+</html>
