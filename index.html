@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一年级每日作业大屏看板</title>
+  <style>
+    :root {
+      /* 马卡龙温润柔和背景系 */
+      --bg-canvas: #f6f8fc;
+      --card-white: #ffffff;
+      --text-title: #2d3748;
+      --text-body: #334155;
+      --text-muted: #64748b;
+
+      /* 马卡龙 1A 班（薄荷海盐蓝） */
+      --macaron-blue-bg: #e0f2fe;
+      --macaron-blue-border: #7dd3fc;
+      --macaron-blue-badge: #0284c7;
+
+      /* 马卡龙 1B 班（轻乳杏黄橙） */
+      --macaron-orange-bg: #fef3c7;
+      --macaron-orange-border: #fcd34d;
+      --macaron-orange-badge: #d97706;
+
+      /* 马卡龙 1C 班（薰衣草云杉紫灰） */
+      --macaron-purple-bg: #ede9fe;
+      --macaron-purple-border: #c4b5fd;
+      --macaron-purple-badge: #6d28d9;
+
+      /* 指读状态激活色：马卡龙暖柠黄高亮 */
+      --reading-highlight: #fef08a;
+      --reading-border: #eab308;
+      --reading-text: #854d0e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg-canvas);
+      color: var(--text-body);
+      padding: 16px 20px 40px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1780px;
+      margin: 0 auto;
+    }
+
+    /* 顶部紧凑标题栏 */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px 24px;
+      background: var(--card-white);
+      border-radius: 18px;
+      box-shadow: 0 4px 16px rgba(148, 163, 184, 0.12);
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: var(--text-title);
+    }
+
+    .date-badge {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0284c7;
+      background: #e0f2fe;
+      padding: 4px 16px;
+      border-radius: 9999px;
+      border: 1px solid #bae6fd;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .voice-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.05rem;
+      color: var(--text-title);
+      font-weight: 700;
+    }
+
+    select#mandarinVoiceSelect {
+      background: #f8fafc;
+      color: #1e293b;
+      border: 1.5px solid #cbd5e1;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-stop {
+      background: #f87171;
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 3px 10px rgba(248, 113, 113, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-stop:hover {
+      background: #ef4444;
+      transform: scale(1.02);
+    }
+
+    /* 三列马卡龙卡片栅格布局 */
+    .classes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .class-card {
+      background: var(--card-white);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      box-shadow: 0 6px 20px rgba(148, 163, 184, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 1A 班：马卡龙海盐蓝 */
+    .card-1a {
+      border-color: var(--macaron-blue-border);
+    }
+    .card-1a .card-header {
+      background: var(--macaron-blue-bg);
+      border-bottom: 2px solid var(--macaron-blue-border);
+    }
+    .card-1a .card-title {
+      color: var(--macaron-blue-badge);
+    }
+
+    /* 1B 班：马卡龙杏仁黄 */
+    .card-1b {
+      border-color: var(--macaron-orange-border);
+    }
+    .card-1b .card-header {
+      background: var(--macaron-orange-bg);
+      border-bottom: 2px solid var(--macaron-orange-border);
+    }
+    .card-1b .card-title {
+      color: var(--macaron-orange-badge);
+    }
+
+    /* 1C 班：马卡龙薰衣草淡紫 */
+    .card-1c {
+      border-color: var(--macaron-purple-border);
+    }
+    .card-1c .card-header {
+      background: var(--macaron-purple-bg);
+      border-bottom: 2px solid var(--macaron-purple-border);
+    }
+    .card-1c .card-title {
+      color: var(--macaron-purple-badge);
+    }
+
+    .card-header {
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 1.55rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .card-sub {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .subjects-list {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .subject-block {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .subject-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .subject-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--text-title);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subject-title .en {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .btn-read-group {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #0369a1;
+      background: #e0f2fe;
+      border: 1px solid #7dd3fc;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-read-group:hover {
+      background: #38bdf8;
+      color: #ffffff;
+    }
+
+    .task-items-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 单条作业大字卡片（微调小一号，适应全屏展示减少折行） */
+    .task-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: var(--card-white);
+      border: 1.5px solid #eef2f6;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .task-row:hover {
+      background: #f1f5f9;
+      border-color: #93c5fd;
+      transform: translateX(3px);
+    }
+
+    .task-icon {
+      font-size: 1.05rem;
+      margin-top: 2px;
+      opacity: 0.55;
+    }
+    .task-row:hover .task-icon {
+      opacity: 1;
+    }
+
+    .task-text {
+      /* 针对全屏进行精准微调，避免长文本严重换行挤压 */
+      font-size: 1.18rem;
+      line-height: 1.55;
+      font-weight: 600;
+      color: var(--text-body);
+      flex: 1;
+      word-break: break-word;
+    }
+
+    /* 指读单条高亮态：柔和马卡龙柠檬黄 */
+    .task-row.is-active {
+      background: var(--reading-highlight) !important;
+      border-color: var(--reading-border) !important;
+      box-shadow: 0 2px 10px rgba(234, 179, 8, 0.25);
+    }
+    .task-row.is-active .task-text {
+      color: var(--reading-text) !important;
+      font-weight: 800;
+    }
+    .task-row.is-active .task-icon {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+
+    .empty-block {
+      font-size: 1.05rem;
+      color: #94a3b8;
+      font-style: italic;
+      padding: 6px 8px;
+    }
+
+    @media (max-width: 1200px) {
+      .classes-grid {
+        grid-template-columns: 1fr;
+      }
+      h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="title-group">
+        <h1>🎒 一年级每日作业看板</h1>
+        <span class="date-badge">10月21日 星期三 Wednesday</span>
+      </div>
+      <div class="header-controls">
+        <div class="voice-box">
+          <span>🎙️ 中文声音：</span>
+          <select id="mandarinVoiceSelect" onchange="onVoiceChange()">
+            <option value="">加载普通话声音...</option>
+          </select>
+        </div>
+        <button class="btn-stop" onclick="stopSpeech()">
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+          停止播报
+        </button>
+      </div>
+    </header>
+
+    <div class="classes-grid">
+
+      <!-- 1A 班 -->
+      <div class="class-card card-1a">
+        <div class="card-header">
+          <div class="card-title">🔷 1A 班</div>
+          <div class="card-sub">homework 每日作业</div>
+        </div>
+        <div class="subjects-list">
+
+          <!-- 数学 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">📐 数学 <span class="en">Maths</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1A班数学')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1A班数学：计算能手第42至43页。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">计算能手 P42–43</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 语文 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">📖 语文 <span class="en">Chinese</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1A班语文')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1A班语文第一条：完成写字本A第22至25页，规范书写。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 完成写字本A第 22–25 页，规范书写</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1A班语文第二条：熟读语文书第51至52页。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 熟读语文书第 51–52 页</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 英语 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">🔤 英语 <span class="en">English</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1A班英语')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1A班英语第一条：看3个短动画，挑1个，练配音5遍以上。听看，跟读，看字幕暂停练习，注意语气语调的模仿。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 看 3 个短动画，挑 1 个，练配音 5 遍+（听看，跟读，看字幕暂停练习，注意语气语调的模仿）</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1A班英语第二条：复习数字1到10，打招呼 What is your name? Hello, I am... 问年龄 How old are you? I am ... years old。冒险岛已经更新KB1乐园关卡，不超过10分钟使用时间。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 复习数字 1–10，打招呼 What's your name? Hello, I'm... 问年龄 How old are you? I'm ... years old.（冒险岛已经更新 KB1 乐园关卡，不超过 10 分钟使用时间）</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">🌟 其他 <span class="en">Others</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1A班其他事项')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1A班其他事项第一条：每天跳绳3到5组，每组1分钟，记录在 planner 月计划格子里。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 每天跳绳 3~5 组，每组 1 分钟，记录在 planner 月计划格子里</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1A班其他事项第二条：自己整理书包，书面作业放作业袋，学科课本分类放。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 自己整理书包（书面作业放作业袋，学科课本分类放）</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 1B 班 -->
+      <div class="class-card card-1b">
+        <div class="card-header">
+          <div class="card-title">🔶 1B 班</div>
+          <div class="card-sub">homework 每日作业</div>
+        </div>
+        <div class="subjects-list">
+
+          <!-- 数学 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">📐 数学 <span class="en">Maths</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1B班数学')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1B班数学：计算能手第42至43页。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">计算能手 P42–43</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 语文 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">📖 语文 <span class="en">Chinese</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1B班语文')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1B班语文第一条：完成写字本A第22至25页，规范书写。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 完成写字本A第 22–25 页，规范书写</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1B班语文第二条：熟读语文书第51至52页正文。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 熟读语文书第 51–52 页正文</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 英语 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">🔤 英语 <span class="en">English</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1B班英语')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1B班英语第一条：看3个英文小视频，自选1个练习配音。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 看 3 个英文小视频，自选 1 个练习配音</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1B班英语第二条：跟视频复习本单元已学内容，包括打招呼、问名字、问年龄。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 跟视频复习本单元已学内容（打招呼，问名字，问年龄）</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">🌟 其他 <span class="en">Others</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1B班其他事项')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="empty-block">（暂无特殊安排）</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 1C 班 -->
+      <div class="class-card card-1c">
+        <div class="card-header">
+          <div class="card-title">🔮 1C 班</div>
+          <div class="card-sub">homework 每日作业</div>
+        </div>
+        <div class="subjects-list">
+
+          <!-- 数学 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">📐 数学 <span class="en">Maths</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1C班数学')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1C班数学第一条：计算能手第40、41页。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 《计算能手》40、41 页</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1C班数学第二条：校本第29页。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 《校本》29 页</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 语文 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">📖 语文 <span class="en">Chinese</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1C班语文')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1C班语文第一条：完成写字本A第22至25页，规范书写。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 完成写字本A第 22–25 页，规范书写</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1C班语文第二条：熟读语文书第51至52页。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 熟读语文书第 51–52 页</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 英语 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">🔤 英语 <span class="en">English</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1C班英语')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="task-row" onclick="readSingleTask(this, '1C班英语第一条：看3个英文小视频，自选1个练习配音。听看，跟读，看字幕暂停练习，注意语气语调的模仿。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">1. 看 3 个英文小视频，自选 1 个练习配音（听看，跟读，看字幕暂停练习，注意语气语调的模仿）</span>
+              </div>
+              <div class="task-row" onclick="readSingleTask(this, '1C班英语第二条：跟视频复习本单元已学内容，包括打招呼、问名字、问年龄。')">
+                <span class="task-icon">🔊</span>
+                <span class="task-text">2. 跟视频复习本单元已学内容（打招呼，问名字，问年龄）</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 其他 -->
+          <div class="subject-block">
+            <div class="subject-header">
+              <span class="subject-title">🌟 其他 <span class="en">Others</span></span>
+              <button class="btn-read-group" onclick="readAllInBlock(this, '1C班其他事项')">全读 🔊</button>
+            </div>
+            <div class="task-items-box">
+              <div class="empty-block">（暂无特殊安排）</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const synth = window.speechSynthesis;
+    let selectedVoice = null;
+    let activeTaskRow = null;
+    let batchQueue = [];
+    let isBatching = false;
+
+    // 仅过滤普通话声音
+    function loadMandarinVoices() {
+      if (!synth) return;
+      const allVoices = synth.getVoices();
+      const select = document.getElementById('mandarinVoiceSelect');
+      select.innerHTML = '';
+
+      const mandarinVoices = allVoices.filter(v => {
+        const lang = v.lang.toLowerCase();
+        return (lang.includes('zh-cn') || lang.includes('cmn') || lang.includes('zh_cn')) && !lang.includes('hk') && !lang.includes('tw');
+      });
+
+      if (mandarinVoices.length === 0) {
+        const fallbackZh = allVoices.filter(v => v.lang.toLowerCase().startsWith('zh'));
+        if (fallbackZh.length > 0) {
+          fallbackZh.forEach(v => appendOption(select, v));
+        } else {
+          const opt = document.createElement('option');
+          opt.textContent = '标准中文普通话';
+          opt.value = '';
+          select.appendChild(opt);
+        }
+      } else {
+        mandarinVoices.forEach(v => appendOption(select, v));
+      }
+
+      const defaultVoice = mandarinVoices.find(v => 
+        v.name.includes('Xiaoxiao') || v.name.includes('Tingting') || v.name.includes('Yunxi') || v.name.includes('Natural')
+      ) || mandarinVoices[0] || null;
+
+      if (defaultVoice) {
+        select.value = defaultVoice.name;
+        selectedVoice = defaultVoice;
+      }
+    }
+
+    function appendOption(select, voice) {
+      const opt = document.createElement('option');
+      let cleanName = voice.name
+        .replace('Microsoft ', '微软-')
+        .replace('Apple ', '苹果-')
+        .replace('Google ', '谷歌-')
+        .replace('Online (Natural)', '自然人声');
+      opt.textContent = cleanName;
+      opt.value = voice.name;
+      select.appendChild(opt);
+    }
+
+    function onVoiceChange() {
+      const select = document.getElementById('mandarinVoiceSelect');
+      const voices = synth.getVoices();
+      selectedVoice = voices.find(v => v.name === select.value) || null;
+      stopSpeech();
+    }
+
+    function stopSpeech() {
+      if (synth) synth.cancel();
+      isBatching = false;
+      batchQueue = [];
+      clearAllActive();
+    }
+
+    function clearAllActive() {
+      document.querySelectorAll('.task-row').forEach(row => row.classList.remove('is-active'));
+      activeTaskRow = null;
+    }
+
+    // 单条点读（自然 1.0 语速）
+    function readSingleTask(elem, text) {
+      if (!('speechSynthesis' in window)) return;
+
+      if (activeTaskRow === elem && synth.speaking) {
+        stopSpeech();
+        return;
+      }
+
+      stopSpeech();
+      activeTaskRow = elem;
+      elem.classList.add('is-active');
+
+      const utter = new SpeechSynthesisUtterance(text);
+      if (selectedVoice) utter.voice = selectedVoice;
+      utter.lang = 'zh-CN';
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+
+      utter.onend = () => {
+        elem.classList.remove('is-active');
+        activeTaskRow = null;
+      };
+      utter.onerror = () => {
+        elem.classList.remove('is-active');
+        activeTaskRow = null;
+      };
+
+      synth.speak(utter);
+    }
+
+    // 学科整组连读
+    function readAllInBlock(btn, titlePrefix) {
+      const block = btn.closest('.subject-block');
+      const rows = block.querySelectorAll('.task-row');
+
+      if (rows.length === 0) {
+        stopSpeech();
+        const utter = new SpeechSynthesisUtterance(`${titlePrefix}：暂无作业安排。`);
+        if (selectedVoice) utter.voice = selectedVoice;
+        utter.rate = 1.0;
+        synth.speak(utter);
+        return;
+      }
+
+      stopSpeech();
+      isBatching = true;
+      batchQueue = [];
+
+      rows.forEach((row, i) => {
+        const text = row.querySelector('.task-text').innerText;
+        batchQueue.push({
+          rowElem: row,
+          text: `${titlePrefix} 第${i + 1}条：${text}`
+        });
+      });
+
+      let step = 0;
+      function next() {
+        if (!isBatching || step >= batchQueue.length) {
+          clearAllActive();
+          return;
+        }
+
+        const curr = batchQueue[step];
+        clearAllActive();
+        curr.rowElem.classList.add('is-active');
+        activeTaskRow = curr.rowElem;
+
+        const utter = new SpeechSynthesisUtterance(curr.text);
+        if (selectedVoice) utter.voice = selectedVoice;
+        utter.rate = 1.0;
+        utter.pitch = 1.0;
+
+        utter.onend = () => {
+          step++;
+          setTimeout(next, 250);
+        };
+        utter.onerror = () => {
+          step++;
+          next();
+        };
+
+        synth.speak(utter);
+      }
+
+      next();
+    }
+
+    if (synth.onvoiceschanged !== undefined) {
+      synth.onvoiceschanged = loadMandarinVoices;
+    }
+    window.addEventListener('DOMContentLoaded', loadMandarinVoices);
+  </script>
+</body>
+</html>
